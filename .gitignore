@@ -1,0 +1,38 @@
+# Created by .ignore support plugin (hsz.mobi)
+
+
+*.iml
+
+## Directory-based project format:
+.idea/
+
+# Gradle:
+# .idea/gradle.xml
+# .idea/libraries
+
+# Mongo Explorer plugin:
+# .idea/mongoSettings.xml
+
+## File-based project format:
+*.ipr
+*.iws
+
+# IntelliJ
+/out/
+/target/
+
+# mpeltonen/sbt-idea plugin
+.idea_modules/
+
+# JIRA plugin
+atlassian-ide-plugin.xml
+
+# Crashlytics plugin (for Android Studio and IntelliJ)
+com_crashlytics_export_strings.xml
+crashlytics.properties
+crashlytics-build.properties
+
+# project
+userinfo.properties
+*.txt
+
