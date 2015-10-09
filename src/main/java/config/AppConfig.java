@@ -8,4 +8,7 @@ public class AppConfig {
     // School汇总排序的结果文件名
     public static String SchoolRank_OUT_PATH = "school_out.txt";
 
+    // 好友关系数据的结果文件名
+    public static String FriendRelationship_OUT_PATH = "network.txt";
+
 }

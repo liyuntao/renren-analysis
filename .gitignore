@@ -35,4 +35,6 @@ crashlytics-build.properties
 # project
 userinfo.properties
 *.txt
+headless_simple.png
+headless_simple.svg
 

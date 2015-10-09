@@ -22,7 +22,8 @@ public class ModelFactory {
     }
 
     public static FriendInfo parseFriendFromStr(String str) {
-        String content = str.substring(7, str.length() - 2);
+        if(str == null || str.isEmpty()) return null;
+        String content = str.substring(str.indexOf('(') + 1, str.length() - 1);
         String[] parameters = content.split(", ");
         String uid = parameters[0];
         String school = parameters[1];

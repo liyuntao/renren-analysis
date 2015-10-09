@@ -1,5 +1,6 @@
 package service;
 
+import config.AppConfig;
 import model.FriendInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,9 +36,11 @@ public class DataFileHandler {
             for (String line; (line = br.readLine()) != null; ) {
                 if (isParentLine(line)) {
                     parent = ModelFactory.parseFriendFromStr(line);
+                    if(parent == null) continue;
                     map.put(parent, new ArrayList<>());
                 } else {
                     FriendInfo child = ModelFactory.parseFriendFromStr(line);
+                    if(parent == null) continue;
                     map.get(parent).add(child);
                 }
             }
@@ -84,7 +87,7 @@ public class DataFileHandler {
      * @throws IOException
      */
     public static void dumpDataFile(Map<FriendInfo, List<FriendInfo>> map) throws IOException {
-        dumpDataFile(map, "network.txt");
+        dumpDataFile(map, AppConfig.FriendRelationship_OUT_PATH);
     }
 
     public void dumpSchoolRank(List<Pair<String, Integer>> list, String schoolRankFilePath) throws IOException {

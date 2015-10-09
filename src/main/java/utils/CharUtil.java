@@ -25,7 +25,16 @@ public class CharUtil {
     }
 
     private static boolean isOk(char c) {
-        return Character.isLetterOrDigit(c) | isChinese(c);
+        return isLetterOrDigit(c) | isChinese(c);
+    }
+
+    private static boolean isLetterOrDigit(char c) {
+        if((c >= 'a' && c <= 'z')
+                || (c >= 'A' && c <= 'Z')
+                || (c >= '0' && c <= '9')) {
+            return true;
+        }
+        return false;
     }
 
     private static boolean isChinese(char c) {
