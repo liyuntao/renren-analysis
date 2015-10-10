@@ -7,7 +7,7 @@
 
 ## Requirements
 
-In order to run this projectyou will need to have installed:
+In order to run this project you will need to have installed:
 
 * JDK 1.8 or later
 * Maven (3.0+ recommended)

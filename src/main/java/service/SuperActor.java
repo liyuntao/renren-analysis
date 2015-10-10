@@ -86,8 +86,8 @@ public class SuperActor extends UntypedActor {
             // 由super actor汇总之
             @SuppressWarnings("unchecked")
             Pair<FriendInfo, List<FriendInfo>> p = (Pair<FriendInfo, List<FriendInfo>>) message;
-            log.info("SuperActor已收到并汇总[{}]的好友数据" , p.getObject1().getName());
             dataMap.put(p.getObject1(), p.getObject2());
+            log.info("SuperActor已收到并汇总[{}]的好友数据，任务进度:{}/{}", p.getObject1().getName(), dataMap.size(), friends.size());
             subTaskLeft--;
 
             if (subTaskLeft <= 0) {
@@ -153,6 +153,7 @@ class FriendActor extends UntypedActor {
                     }
                     getSender().tell(new Pair<>(this.friendInfo, commonFriends), ActorRef.noSender());
                 } catch (Exception e) {
+                    log.error(e.getMessage());
                     getSender().tell("errorOccur", getSelf());
                 }
                 break;
