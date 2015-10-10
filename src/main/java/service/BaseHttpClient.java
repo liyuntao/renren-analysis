@@ -16,25 +16,34 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import utils.SemaphoreReleaseOnlyOnce;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 public class BaseHttpClient {
     private static final Logger log = LoggerFactory.getLogger(BaseHttpClient.class);
 
     private AccountInfo accountInfo;
     private CloseableHttpClient client;
+
+    private final long timeoutMillis = 2000;
+
+    // TODO 信号量，用于异步网络请求的流控
+    protected final Semaphore semaphoreSync;
 
     // TODO 信号量，用于异步网络请求的流控
     protected final Semaphore semaphoreAsync;
@@ -49,16 +58,23 @@ public class BaseHttpClient {
                 .setExpectContinueEnabled(true)
                 .build();
 
+        PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();
+        // Increase max total connection to 200
+        cm.setMaxTotal(20);
+
         client = HttpClients.custom()
+                .setConnectionManager(cm)
                 .setDefaultCookieStore(cookieStore)
                 .setDefaultRequestConfig(renrenRequestConfig)
                 .build();
 
-        login(client);
+        login();
+
+        semaphoreSync = new Semaphore(20, true);
         semaphoreAsync = new Semaphore(20, true);
     }
 
-    public void login(HttpClient new_client) {
+    public void login() {
         String url = "http://www.renren.com/ajaxLogin/login";
         HttpPost httpPost = new HttpPost(url);
         List<NameValuePair> nvps = new ArrayList<>();
@@ -71,15 +87,16 @@ public class BaseHttpClient {
         nvps.add(new BasicNameValuePair("password", accountInfo.getPwd()));
         try {
             httpPost.setEntity(new UrlEncodedFormEntity(nvps));
-            HttpResponse res = new_client.execute(httpPost);
-            HttpEntity entity = res.getEntity();
-            EntityUtils.consume(entity);
+        } catch (UnsupportedEncodingException e) {
+           log.error(e.getMessage());
+        }
+        try (CloseableHttpResponse res = client.execute(httpPost)) {
         } catch (IOException e) {
             log.error("登陆请求过程中出错", e);
         }
     }
 
-    public String getContentByUrlSync(String url) throws IOException {
+    public String getContentByUrlSync(String url) throws IOException, InterruptedException {
         String[] useragents = {
                 "Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1312.57 Safari/537.17",
                 "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Ubuntu Chromium/23.0.1271.97 Chrome/23.0.1271.97 Safari/537.11",
@@ -90,17 +107,27 @@ public class BaseHttpClient {
 
         Random random = new Random();
         HttpGet httpGet = new HttpGet(url);
+        // 设置UserAgent
         httpGet.setHeader(HttpHeaders.USER_AGENT, useragents[random.nextInt(useragents.length)]);
 
-        try (CloseableHttpResponse res_new = client.execute(httpGet)) {
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(res_new.getEntity().getContent()));
-            StringBuilder content = new StringBuilder();
-            String line = bufferedReader.readLine();
-            while (line != null) {
-                content.append(line);
-                line = bufferedReader.readLine();
+        // 设置请求和传输超时时间
+        RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(10000).setConnectTimeout(10000).build();
+        httpGet.setConfig(requestConfig);
+
+        try {
+            try (CloseableHttpResponse res_new = client.execute(httpGet)) {
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(res_new.getEntity().getContent()));
+                StringBuilder content = new StringBuilder();
+                String line = bufferedReader.readLine();
+                while (line != null) {
+                    content.append(line);
+                    line = bufferedReader.readLine();
+                }
+                return content.toString();
             }
-            return content.toString();
+        } catch (Exception e) {
+            log.debug(e.getMessage());
+            throw e;
         }
     }
 

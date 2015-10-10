@@ -3,16 +3,23 @@ package service;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.dispatch.OnFailure;
+import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Creator;
 import model.FriendInfo;
+import scala.concurrent.Future;
 import utils.Pair;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+
+import static akka.dispatch.Futures.future;
 
 
 /**
@@ -22,7 +29,6 @@ public class SuperActor extends UntypedActor {
     LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
     private List<FriendInfo> friends;
-    private int retryTimes = -1;
     private boolean running = false;
     private int subTaskLeft;
     private int errorCount = 0;
@@ -31,7 +37,15 @@ public class SuperActor extends UntypedActor {
 
     private SuperActor(List<FriendInfo> friendList) {
         this.friends = friendList;
-        this.subTaskLeft = friendList.size();
+
+        // FIXME 测试使用，减小数据量
+//        List<FriendInfo> fake = new ArrayList<>();
+//        for(int i = 0; i < 10; i++) {
+//            fake.add(friends.get(i));
+//        }
+//        friends = fake;
+
+        this.subTaskLeft = friends.size();
     }
 
     public static Props props(final List<FriendInfo> friends) {
@@ -73,10 +87,6 @@ public class SuperActor extends UntypedActor {
                     subTaskLeft--;
                     errorCount++;
                     break;
-                case "ignore":
-                    subTaskLeft--;
-                    log.warning("忽略抓取某好友");
-                    break;
                 default:
                     log.warning("receive an unrecognized message!");
                     break;
@@ -99,6 +109,7 @@ public class SuperActor extends UntypedActor {
                 context().system().shutdown();
             }
         } else {
+            log.warning("superActor未处理的消息");
             unhandled(message);
         }
     }
@@ -138,24 +149,43 @@ class FriendActor extends UntypedActor {
     public void onReceive(Object message) throws Exception {
         switch ((String) message) {
             case "start_crawling":
-                try {
-                    RenrenHttpClient httpClient = RenrenHttpClient.getInstance();
-                    int friendCount = httpClient.getFriendCount(this.friendInfo.getUid());
-                    if (friendCount > 1000) { // 忽略粉丝众多的运营大号和交际花 TODO 后期应将这个过滤参数扩展至外部
-                        getSender().tell("ignore", getSelf());
-                        return;
+                Future<Pair<FriendInfo, List<FriendInfo>>> f = future(new Callable<Pair<FriendInfo, List<FriendInfo>>>() {
+                    public Pair<FriendInfo, List<FriendInfo>> call() throws Exception {
+                        List<FriendInfo> commonFriends = new ArrayList<>();
+
+                        RenrenHttpClient httpClient = RenrenHttpClient.getInstance();
+                        int friendCount = httpClient.getFriendCount(friendInfo.getUid());
+                        if (friendCount > 1000) { // 忽略粉丝众多的运营大号和交际花 TODO 后期应将这个过滤参数扩展至外部
+                            log.warning("[{}]好友数量超过{}, 已忽略抓取", friendInfo.getName(), 1000);
+                            return new Pair<>(friendInfo, commonFriends);
+                        }
+                        log.info("正在获取[{}]的好友列表... 共计{}个", friendInfo.getName(), friendCount);
+                        List<FriendInfo> friendList = httpClient.getFriendList(friendInfo.getUid(), friendInfo.getName());
+                        for (FriendInfo info : friendList) {
+                            if(httpClient.isMyFriend(info)) commonFriends.add(info);
+                        }
+                        return new Pair<>(friendInfo, commonFriends);
                     }
-                    log.info("正在获取[{}]的好友列表... 共计{}个", friendInfo.getName(), friendCount);
-                    List<FriendInfo> friendList = httpClient.getFriendList(this.friendInfo.getUid());
-                    List<FriendInfo> commonFriends = new ArrayList<>();
-                    for (FriendInfo info : friendList) {
-                        if(httpClient.isMyFriend(info)) commonFriends.add(info);
+                }, getContext().system().dispatcher());
+
+                ActorRef sender = getSender();
+                ActorRef self = getSelf();
+
+                f.onSuccess(new OnSuccess<Pair<FriendInfo, List<FriendInfo>>>() {
+                    @Override
+                    public void onSuccess(Pair<FriendInfo, List<FriendInfo>> result) throws Throwable {
+                        sender.tell(result, ActorRef.noSender());
+                        context().stop(self);
                     }
-                    getSender().tell(new Pair<>(this.friendInfo, commonFriends), ActorRef.noSender());
-                } catch (Exception e) {
-                    log.error(e.getMessage());
-                    getSender().tell("errorOccur", getSelf());
-                }
+                }, getContext().system().dispatcher());
+
+                f.onFailure(new OnFailure() {
+                    @Override
+                    public void onFailure(Throwable failure) throws Throwable {
+                        log.error(failure.getMessage());
+                        sender.tell("errorOccur", getSelf());
+                    }
+                }, getContext().system().dispatcher());
                 break;
             default:
                 log.warning("receive an unrecognized message!");
