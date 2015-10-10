@@ -1,5 +1,6 @@
 package service;
 
+import config.AppConfig;
 import model.AccountInfo;
 import org.apache.http.HttpHeaders;
 import org.apache.http.NameValuePair;
@@ -22,6 +23,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -95,23 +97,32 @@ public class BaseHttpClient {
         RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(10000).setConnectTimeout(10000).build();
         httpGet.setConfig(requestConfig);
 
+        CloseableHttpResponse res_new = null;
         try {
-            try (CloseableHttpResponse res_new = client.execute(httpGet)) {
-                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(res_new.getEntity().getContent()));
-                StringBuilder content = new StringBuilder();
-                String line = bufferedReader.readLine();
-                while (line != null) {
-                    content.append(line);
-                    line = bufferedReader.readLine();
+            // 超时重试机制
+            int retryTimesLeft = AppConfig.MAX_NETWORK_REQUEST_TIMES;
+            while (retryTimesLeft > 0 && res_new == null) {
+                try {
+                    res_new = client.execute(httpGet);
+                } catch (SocketTimeoutException e) {
+                    retryTimesLeft--;
                 }
-                return content.toString();
             }
-        } catch (Exception e) {
-            log.debug(e.getMessage());
-            throw e;
+            if (res_new == null) {
+                throw new SocketTimeoutException("http request超时重试次数超过阈值!");
+            }
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(res_new.getEntity().getContent()));
+            StringBuilder content = new StringBuilder();
+            String line = bufferedReader.readLine();
+            while (line != null) {
+                content.append(line);
+                line = bufferedReader.readLine();
+            }
+            return content.toString();
+        } finally {
+            if (res_new != null) res_new.close();
         }
     }
-
 }
 
 

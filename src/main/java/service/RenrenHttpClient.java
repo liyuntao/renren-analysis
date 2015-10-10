@@ -80,23 +80,18 @@ public class RenrenHttpClient extends BaseHttpClient {
             String page_url = String.format(url, i);
             String _content;
             long start = System.currentTimeMillis();
-            if(i > 0) { // 超时重试机制
-                int retryTimesLeft = AppConfig.MAX_NETWORK_REQUEST_TIMES;
-                _content = null;
-                while(retryTimesLeft > 0 && _content == null) {
-                    try {
-                        _content = getContentByUrlSync(page_url);
-                    } catch(SocketTimeoutException e) {
-                        retryTimesLeft--;
-                    }
-                }
-                if(_content == null) {
+
+            if (i > 0) {
+                try {
+                    _content = getContentByUrlSync(page_url);
+                } catch (SocketTimeoutException ignore) {
                     log.warn("超时重试次数过多，忽略好友[{}]某个页面明细 debug_url: {}", name, page_url);
                     continue;
                 }
             } else { // 重复利用前面的0页内容，减少一次网络IO
                 _content = page0_content;
             }
+
             long end = System.currentTimeMillis();
             log.debug("已经获取好友[{}]页面明细, page={}, 耗时{}", name, i + 1, end - start);
             result.addAll(WebPageHandler.getFriendsInOnePage(_content));
