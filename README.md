@@ -1,5 +1,5 @@
 # renren-analysis
-**a project which is used for crawler and data visualization on renren.com**
+**a project which is used for crawler and data visualization on [renren.com](http://www.renren.com)**
 
 <figure>
 	<img src="http://gaocegege.com/scala-renren/example.png" height="450">
