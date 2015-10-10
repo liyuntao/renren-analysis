@@ -68,8 +68,8 @@ public class RenrenHttpClient extends BaseHttpClient {
         int page = 0;
 
         String url = "http://friend.renren.com/GetFriendList.do?curpage=%s&id=" + uid;
-        String content = getContentByUrlSync(String.format(url, page));
-        int count = WebPageHandler.getFriendCounts(content);
+        String page0_content = getContentByUrlSync(String.format(url, page));
+        int count = WebPageHandler.getFriendCounts(page0_content);
 
         Pair<Integer, Integer> pair = divmod(count, elementsInOnePage);
         int pageNum = pair.getObject1();
@@ -77,23 +77,28 @@ public class RenrenHttpClient extends BaseHttpClient {
 
         List<Element> result = new ArrayList<>();
         for (int i = 0; i <= pageNum; i++) {
-            long l1 = System.currentTimeMillis();
-//            log.debug("正在获取好友[{}]页面明细, page={} debug_url: {}", name, i + 1, String.format(url, i));
-            String _content = content; // 重复利用前面的0页内容，减少一次网络IO
-            int retryTimes = 5; // TODO 实现重试机制
-            if(i > 0) {
-                try {
-                    _content = getContentByUrlSync(String.format(url, i));
-                } catch(SocketTimeoutException e) {
-//                    while(retryTimes > 0) {
-//                        _content = getContentByUrlSync(String.format(url, i));
-//                    }
-                    log.warn("由于超时，忽略好友[{}]页面明细 debug_url: {}", name, String.format(url, i));
+            String page_url = String.format(url, i);
+            String _content;
+            long start = System.currentTimeMillis();
+            if(i > 0) { // 超时重试机制
+                int retryTimesLeft = AppConfig.MAX_NETWORK_REQUEST_TIMES;
+                _content = null;
+                while(retryTimesLeft > 0 && _content == null) {
+                    try {
+                        _content = getContentByUrlSync(page_url);
+                    } catch(SocketTimeoutException e) {
+                        retryTimesLeft--;
+                    }
+                }
+                if(_content == null) {
+                    log.warn("超时重试次数过多，忽略好友[{}]某个页面明细 debug_url: {}", name, page_url);
                     continue;
                 }
+            } else { // 重复利用前面的0页内容，减少一次网络IO
+                _content = page0_content;
             }
-            long l2 = System.currentTimeMillis();
-            log.debug("已经获取好友[{}]页面明细, page={}, 耗时{}", name, i + 1, l2 - l1);
+            long end = System.currentTimeMillis();
+            log.debug("已经获取好友[{}]页面明细, page={}, 耗时{}", name, i + 1, end - start);
             result.addAll(WebPageHandler.getFriendsInOnePage(_content));
         }
         return result;
