@@ -8,15 +8,12 @@ import akka.dispatch.OnSuccess;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Creator;
+import config.AppConfig;
 import model.FriendInfo;
 import scala.concurrent.Future;
 import utils.Pair;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Callable;
 
 import static akka.dispatch.Futures.future;
@@ -33,6 +30,9 @@ public class SuperActor extends UntypedActor {
     private int subTaskLeft;
     private int errorCount = 0;
 
+    private int current_running_task = 0;
+    private Iterator<FriendInfo> iterator;
+
     private Map<FriendInfo, List<FriendInfo>> dataMap = new HashMap<>();
 
     private SuperActor(List<FriendInfo> friendList) {
@@ -40,12 +40,13 @@ public class SuperActor extends UntypedActor {
 
         // FIXME 测试使用，减小数据量
 //        List<FriendInfo> fake = new ArrayList<>();
-//        for(int i = 0; i < 10; i++) {
+//        for(int i = 0; i < 30; i++) {
 //            fake.add(friends.get(i));
 //        }
 //        friends = fake;
 
         this.subTaskLeft = friends.size();
+        this.iterator = friends.iterator(); // 用于简化任务分配的逻辑
     }
 
     public static Props props(final List<FriendInfo> friends) {
@@ -76,16 +77,39 @@ public class SuperActor extends UntypedActor {
                         }
 
                         log.info("SuperActor begins to work");
-                        // 为每一个Friend分发Actor，爬取共同好友
-                        for (FriendInfo friendInfo : friends) {
-                            ActorRef actorRef = context().actorOf(FriendActor.props(friendInfo), friendInfo.getUid() + "_actor");
-                            actorRef.tell("start_crawling", getSelf());
-                        }
+                        self().tell("allocateSubTask", ActorRef.noSender());
                     }
                     break;
                 case "errorOccur":
-                    subTaskLeft--;
                     errorCount++;
+                    current_running_task--;
+
+                    self().tell("SubTaskFinish", ActorRef.noSender());
+                    break;
+                case "allocateSubTask":
+                    while (current_running_task < AppConfig.MAX_CONCURRENT_TASK_RUNNING && iterator.hasNext()) {
+                        // 分配子任务
+                        FriendInfo friendInfo = iterator.next();
+                        ActorRef actorRef = context().actorOf(FriendActor.props(friendInfo), friendInfo.getUid() + "_actor");
+                        actorRef.tell("start_crawling", getSelf());
+                        current_running_task++;
+                    }
+                    break;
+                case "SubTaskFinish":
+                    // 负责子任务的分配与结束管理，是整个ActorSystem的出口方法
+                    subTaskLeft--;
+                    current_running_task--;
+
+                    if (subTaskLeft > 0) {
+                        self().tell("allocateSubTask", ActorRef.noSender());
+                    } else {
+                        // 任务结束，unwatch并stop所有child actors
+                        stopAll();
+                        // 将结果dump至文件
+                        DataFileHandler.dumpDataFile(dataMap);
+                        log.info("抓取任务结束!! 共抓取{}个好友，出现{}个错误", friends.size(), errorCount);
+                        context().system().shutdown();
+                    }
                     break;
                 default:
                     log.warning("receive an unrecognized message!");
@@ -93,21 +117,13 @@ public class SuperActor extends UntypedActor {
             }
         } else if (message instanceof Pair) {
             // child actor返回它所负责查询的Friend的所有共同好友 List<FriendInfo>
-            // 由super actor汇总之
+            // 由super actor汇总（reduce）
             @SuppressWarnings("unchecked")
             Pair<FriendInfo, List<FriendInfo>> p = (Pair<FriendInfo, List<FriendInfo>>) message;
             dataMap.put(p.getObject1(), p.getObject2());
             log.info("SuperActor已收到并汇总[{}]的好友数据，任务进度:{}/{}", p.getObject1().getName(), dataMap.size(), friends.size());
-            subTaskLeft--;
 
-            if (subTaskLeft <= 0) {
-                // 任务结束，unwatch并stop所有child actors
-                stopAll();
-                // 将结果dump至文件
-                DataFileHandler.dumpDataFile(dataMap);
-                log.info("抓取任务结束!! 共抓取{}个好友，出现{}个错误", friends.size(), errorCount);
-                context().system().shutdown();
-            }
+            self().tell("SubTaskFinish", ActorRef.noSender());
         } else {
             log.warning("superActor未处理的消息");
             unhandled(message);
@@ -162,7 +178,7 @@ class FriendActor extends UntypedActor {
                         log.info("正在获取[{}]的好友列表... 共计{}个", friendInfo.getName(), friendCount);
                         List<FriendInfo> friendList = httpClient.getFriendList(friendInfo.getUid(), friendInfo.getName());
                         for (FriendInfo info : friendList) {
-                            if(httpClient.isMyFriend(info)) commonFriends.add(info);
+                            if (httpClient.isMyFriend(info)) commonFriends.add(info);
                         }
                         return new Pair<>(friendInfo, commonFriends);
                     }

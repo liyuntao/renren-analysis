@@ -1,12 +1,9 @@
 package service;
 
 import model.AccountInfo;
-import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
-import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.CookieStore;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -18,10 +15,8 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import utils.SemaphoreReleaseOnlyOnce;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -30,23 +25,12 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.Future;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 
 public class BaseHttpClient {
     private static final Logger log = LoggerFactory.getLogger(BaseHttpClient.class);
 
     private AccountInfo accountInfo;
     private CloseableHttpClient client;
-
-    private final long timeoutMillis = 2000;
-
-    // TODO 信号量，用于异步网络请求的流控
-    protected final Semaphore semaphoreSync;
-
-    // TODO 信号量，用于异步网络请求的流控
-    protected final Semaphore semaphoreAsync;
 
     public BaseHttpClient(AccountInfo accountInfo) {
         this.accountInfo = accountInfo;
@@ -69,9 +53,6 @@ public class BaseHttpClient {
                 .build();
 
         login();
-
-        semaphoreSync = new Semaphore(20, true);
-        semaphoreAsync = new Semaphore(20, true);
     }
 
     public void login() {
@@ -88,7 +69,7 @@ public class BaseHttpClient {
         try {
             httpPost.setEntity(new UrlEncodedFormEntity(nvps));
         } catch (UnsupportedEncodingException e) {
-           log.error(e.getMessage());
+            log.error(e.getMessage());
         }
         try (CloseableHttpResponse res = client.execute(httpPost)) {
         } catch (IOException e) {
@@ -131,10 +112,6 @@ public class BaseHttpClient {
         }
     }
 
-    // TODO
-    public Future<String> getContentByUrlAsync(String url) throws IOException {
-        return null;
-    }
 }
 
 
