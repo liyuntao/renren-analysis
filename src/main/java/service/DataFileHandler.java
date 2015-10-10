@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import utils.Pair;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -31,7 +32,7 @@ public class DataFileHandler {
         }
 
         Map<FriendInfo, List<FriendInfo>> map = new HashMap<>();
-        try (BufferedReader br = new BufferedReader(new FileReader(new File(friendDataFilePath)))) {
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(new File(friendDataFilePath)), StandardCharsets.UTF_8))) {
             FriendInfo parent = null;
             for (String line; (line = br.readLine()) != null; ) {
                 if (isParentLine(line)) {
@@ -68,7 +69,7 @@ public class DataFileHandler {
      * @throws IOException
      */
     public static void dumpDataFile(Map<FriendInfo, List<FriendInfo>> map, String targetDataFilePath) throws IOException {
-        try (PrintWriter pw = new PrintWriter(new FileWriter(targetDataFilePath))) {
+        try (PrintWriter pw = new PrintWriter(new File(targetDataFilePath), "UTF-8")) {
             for (Map.Entry<FriendInfo, List<FriendInfo>> entry : map.entrySet()) {
                 pw.print("-");
                 pw.println(entry.getKey().toString());
@@ -91,7 +92,7 @@ public class DataFileHandler {
     }
 
     public void dumpSchoolRank(List<Pair<String, Integer>> list, String schoolRankFilePath) throws IOException {
-        try (PrintWriter pw = new PrintWriter(new FileWriter(schoolRankFilePath))) {
+        try (PrintWriter pw = new PrintWriter(new File(schoolRankFilePath), "UTF-8")) {
             pw.println("---Friend School Rank---");
             for (Pair<String, Integer> pair : list) {
                 pw.printf("School: %s, Count: %d", pair.getObject1(), pair.getObject2());

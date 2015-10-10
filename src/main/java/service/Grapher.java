@@ -183,7 +183,7 @@ public class Grapher {
 
         // Preview
         model.getProperties().putValue(PreviewProperty.SHOW_NODE_LABELS, true);
-        model.getProperties().putValue(PreviewProperty.NODE_LABEL_FONT, model.getProperties().getFontValue(PreviewProperty.NODE_LABEL_FONT).deriveFont(8));
+        model.getProperties().putValue(PreviewProperty.NODE_LABEL_FONT, new Font("宋体", Font.PLAIN, 10));
         model.getProperties().putValue(PreviewProperty.EDGE_CURVED, false);
         previewController.refreshPreview();
 
