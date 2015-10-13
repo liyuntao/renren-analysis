@@ -65,8 +65,4 @@ public class WebPageHandler {
         return new FriendInfo(uid, school, name, link);
     }
 
-    public static void genSchoolRankFile() {
-        // TODO
-    }
-
 }

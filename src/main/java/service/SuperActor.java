@@ -14,7 +14,6 @@ import scala.concurrent.Future;
 import utils.Pair;
 
 import java.util.*;
-import java.util.concurrent.Callable;
 
 import static akka.dispatch.Futures.future;
 
@@ -165,23 +164,19 @@ class FriendActor extends UntypedActor {
     public void onReceive(Object message) throws Exception {
         switch ((String) message) {
             case "start_crawling":
-                Future<Pair<FriendInfo, List<FriendInfo>>> f = future(new Callable<Pair<FriendInfo, List<FriendInfo>>>() {
-                    public Pair<FriendInfo, List<FriendInfo>> call() throws Exception {
-                        List<FriendInfo> commonFriends = new ArrayList<>();
+                Future<Pair<FriendInfo, List<FriendInfo>>> f = future(() -> {
+                    List<FriendInfo> commonFriends = new ArrayList<>();
 
-                        RenrenHttpClient httpClient = RenrenHttpClient.getInstance();
-                        int friendCount = httpClient.getFriendCount(friendInfo.getUid());
-                        if (friendCount > AppConfig.MAX_FRIENDS_EXCLUDE) {
-                            log.warning("[{}]好友数量超过{}, 已忽略抓取", friendInfo.getName(), 1000);
-                            return new Pair<>(friendInfo, commonFriends);
-                        }
-                        log.info("正在获取[{}]的好友列表... 共计{}个", friendInfo.getName(), friendCount);
-                        List<FriendInfo> friendList = httpClient.getFriendList(friendInfo.getUid(), friendInfo.getName());
-                        for (FriendInfo info : friendList) {
-                            if (httpClient.isMyFriend(info)) commonFriends.add(info);
-                        }
+                    RenrenHttpClient httpClient = RenrenHttpClient.getInstance();
+                    int friendCount = httpClient.getFriendCount(friendInfo.getUid());
+                    if (friendCount > AppConfig.MAX_FRIENDS_EXCLUDE) {
+                        log.warning("[{}]好友数量超过{}, 已忽略抓取", friendInfo.getName(), 1000);
                         return new Pair<>(friendInfo, commonFriends);
                     }
+                    log.info("正在获取[{}]的好友列表... 共计{}个", friendInfo.getName(), friendCount);
+                    List<FriendInfo> friendList = httpClient.getFriendList(friendInfo.getUid(), friendInfo.getName());
+                    friendList.stream().filter(httpClient::isMyFriend).forEach(commonFriends::add);
+                    return new Pair<>(friendInfo, commonFriends);
                 }, getContext().system().dispatcher());
 
                 ActorRef sender = getSender();
