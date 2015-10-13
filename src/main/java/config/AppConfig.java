@@ -15,6 +15,9 @@ public class AppConfig {
     public static final int MAX_CONCURRENT_TASK_RUNNING = 4;
 
     // 网络请求的超时重试次数
-    public static final int MAX_NETWORK_REQUEST_TIMES = 5;
+    public static final int MAX_NETWORK_REQUEST_TIMES = 20;
+
+    // 排除：超过此数目的好友不会被抓取（用以忽略粉丝众多的运营大号，减轻爬虫压力）
+    public static final int MAX_FRIENDS_EXCLUDE = 1500;
 
 }

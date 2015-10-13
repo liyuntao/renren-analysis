@@ -12,10 +12,7 @@ import utils.Pair;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class RenrenHttpClient extends BaseHttpClient {
     private static final Logger log = LoggerFactory.getLogger(RenrenHttpClient.class);
@@ -114,14 +111,35 @@ public class RenrenHttpClient extends BaseHttpClient {
         return WebPageHandler.transformElementsToFriendInfos(friendElementList);
     }
 
-    private void getSchoolRank() {
-        // TODO
+    private void getSchoolRank(List<FriendInfo> friends) throws IOException {
+        if (friends.isEmpty()) return;
+        // 计数统计
+        Map<String/*学校名称*/, Integer/*好友数*/> schoolCountMap = new HashMap<>();
+        for (FriendInfo friend : friends) {
+            String school = friend.getSchool();
+            if (schoolCountMap.containsKey(school)) {
+                schoolCountMap.put(school, schoolCountMap.get(school) + 1);
+            } else {
+                schoolCountMap.put(school, 1);
+            }
+        }
+        // 结构转换
+        List<Pair<String, Integer>> result = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : schoolCountMap.entrySet()) {
+            Pair<String, Integer> pair = new Pair<>(entry.getKey(), entry.getValue());
+            result.add(pair);
+        }
+        result.sort((o1, o2) -> o2.getObject2().compareTo(o1.getObject2()));
+        DataFileHandler.dumpSchoolRank(result, AppConfig.SchoolRank_OUT_PATH);
     }
 
     public void runFriendNetwork() throws Exception {
         String myUid = getMyUid();
         log.info("正在获取账号的所有好友...");
         List<FriendInfo> friends = getFriendList(myUid, "me");
+
+        getSchoolRank(friends);
+
         // 缓存为map
         cache = new HashSet<>(friends);
         crawlFriendsData(friends);

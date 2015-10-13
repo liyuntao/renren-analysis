@@ -41,5 +41,9 @@ public class FriendInfo implements Serializable {
     public String getName() {
         return name;
     }
+
+    public String getSchool() {
+        return school;
+    }
 }
 

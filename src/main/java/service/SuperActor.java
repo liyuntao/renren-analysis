@@ -40,7 +40,7 @@ public class SuperActor extends UntypedActor {
 
         // FIXME 测试使用，减小数据量
 //        List<FriendInfo> fake = new ArrayList<>();
-//        for(int i = 0; i < 30; i++) {
+//        for(int i = 0; i < 5; i++) {
 //            fake.add(friends.get(i));
 //        }
 //        friends = fake;
@@ -171,7 +171,7 @@ class FriendActor extends UntypedActor {
 
                         RenrenHttpClient httpClient = RenrenHttpClient.getInstance();
                         int friendCount = httpClient.getFriendCount(friendInfo.getUid());
-                        if (friendCount > 1000) { // 忽略粉丝众多的运营大号和交际花 TODO 后期应将这个过滤参数扩展至外部
+                        if (friendCount > AppConfig.MAX_FRIENDS_EXCLUDE) {
                             log.warning("[{}]好友数量超过{}, 已忽略抓取", friendInfo.getName(), 1000);
                             return new Pair<>(friendInfo, commonFriends);
                         }

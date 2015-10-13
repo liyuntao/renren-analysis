@@ -91,12 +91,10 @@ public class DataFileHandler {
         dumpDataFile(map, AppConfig.FriendRelationship_OUT_PATH);
     }
 
-    public void dumpSchoolRank(List<Pair<String, Integer>> list, String schoolRankFilePath) throws IOException {
+    public static void dumpSchoolRank(List<Pair<String, Integer>> list, String schoolRankFilePath) throws IOException {
         try (PrintWriter pw = new PrintWriter(new File(schoolRankFilePath), "UTF-8")) {
             pw.println("---Friend School Rank---");
-            for (Pair<String, Integer> pair : list) {
-                pw.printf("School: %s, Count: %d", pair.getObject1(), pair.getObject2());
-            }
+            list.forEach(pair -> pw.println("School: " + pair.getObject1() + "   Count: " + pair.getObject2()));
         }
     }
 

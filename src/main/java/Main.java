@@ -4,6 +4,7 @@ import service.DataFileHandler;
 import service.Grapher;
 import service.RenrenHttpClient;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
