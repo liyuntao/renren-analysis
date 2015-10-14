@@ -1,7 +1,10 @@
 package config;
 
+import service.graph.LayoutAlogEnum;
+
 public class AppConfig {
 
+    /** 爬虫相关 */
     // 配置文件：人人账户密码
     public static final String ACCOUNT_CONFIG_FILEPATH = "userinfo.properties";
 
@@ -19,5 +22,12 @@ public class AppConfig {
 
     // 排除：超过此数目的好友不会被抓取（用以忽略粉丝众多的运营大号，减轻爬虫压力）
     public static final int MAX_FRIENDS_EXCLUDE = 1500;
+
+    /** 绘图相关 */
+    // 绘图布局算法
+    public static final LayoutAlogEnum LAYOUT_ALOG_ENUM = LayoutAlogEnum.ForceAtlas;
+
+    // 显示图节点的Label(人人网姓名)
+    public static final boolean SHOW_NODE_LABELS = true;
 
 }

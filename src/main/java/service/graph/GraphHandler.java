@@ -1,5 +1,6 @@
-package service;
+package service.graph;
 
+import config.AppConfig;
 import model.FriendInfo;
 import org.gephi.data.attributes.api.AttributeColumn;
 import org.gephi.data.attributes.api.AttributeController;
@@ -12,8 +13,8 @@ import org.gephi.graph.api.*;
 import org.gephi.io.exporter.api.ExportController;
 import org.gephi.io.exporter.preview.PNGExporter;
 import org.gephi.io.exporter.preview.SVGExporter;
-import org.gephi.layout.plugin.forceAtlas.ForceAtlasLayout;
 import org.gephi.preview.api.*;
+import org.gephi.preview.types.EdgeColor;
 import org.gephi.project.api.ProjectController;
 import org.gephi.project.api.Workspace;
 import org.gephi.ranking.api.Ranking;
@@ -22,6 +23,7 @@ import org.gephi.ranking.api.Transformer;
 import org.gephi.ranking.plugin.transformer.AbstractSizeTransformer;
 import org.gephi.statistics.plugin.GraphDistance;
 import org.gephi.statistics.plugin.Modularity;
+import org.gephi.utils.PaletteUtils;
 import org.openide.util.Lookup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +36,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * This demo shows several actions done with the toolkit, aiming to do a complete chain,
@@ -54,41 +57,16 @@ import java.util.Random;
  *
  * @author Mathieu Bastian
  */
-public class Grapher {
-    private static final Logger log = LoggerFactory.getLogger(Grapher.class);
+public class GraphHandler {
+    private static final Logger log = LoggerFactory.getLogger(GraphHandler.class);
 
     private Map<FriendInfo, List<FriendInfo>> dataMap;
 
     int minSize = 10;
     int maxSize = 50;
-    Map<Integer, Color> colorMap = new HashMap<>();
 
-    public Grapher(Map<FriendInfo, List<FriendInfo>> dataMap) {
+    public GraphHandler(Map<FriendInfo, List<FriendInfo>> dataMap) {
         this.dataMap = dataMap;
-        fillMap();
-    }
-
-    private Color generateRandomColor(Color mix) {
-        Random random = new Random();
-        int red = random.nextInt(256);
-        int green = random.nextInt(256);
-        int blue = random.nextInt(256);
-
-        // mix the color
-        red = (red + mix.getRed()) / 2;
-        green = (green + mix.getGreen()) / 2;
-        blue = (blue + mix.getBlue()) / 2;
-
-        return new Color(red, green, blue);
-    }
-
-    private void fillMap() {
-        Color mix = new Color(0, 0, 0);
-        for (int i = 0; i <= 100; i++) {
-            Color nextRandomColor = generateRandomColor(mix);
-            colorMap.put(i, nextRandomColor);
-            mix = nextRandomColor;
-        }
     }
 
     private float rgbInt2Float(int a) {
@@ -158,31 +136,34 @@ public class Grapher {
         sizeTransformer.setMaxSize(maxSize);
         rankingController.transform(centralityRanking, sizeTransformer);
 
-        // Rank color by modularity
+        // 根据 modularity 分配节点颜色
         Modularity modularity = new Modularity();
         modularity.execute(graphModel, attributeModel);
+
+        String input = modularity.getReport();
+        String regex = "\\bNumber of Communities\\b\\:\\s(\\d)\\b<br";
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(input);
+        int colorCount = 27;
+        if (matcher.find()) {
+            colorCount = Integer.parseInt(matcher.group(1));
+        }
         AttributeColumn modularityColumn = attributeModel.getNodeTable().getColumn(Modularity.MODULARITY_CLASS);
-        for (Node node : graphModel.getDirectedGraph().getNodes().toArray()) {
+        Color[] colors = PaletteUtils.getSequenceColors(colorCount).toArray(new Color[colorCount]);
+        for (Node node : graphModel.getDirectedGraph().getNodes()) {
             int rgb = (int) node.getNodeData().getAttributes().getValue(modularityColumn.getIndex());
-            Color colorBuf = colorMap.get(rgb);
+            Color colorBuf = colors[rgb % colorCount];
             node.getNodeData().setColor(rgbInt2Float(colorBuf.getRed()), rgbInt2Float(colorBuf.getGreen()), rgbInt2Float(colorBuf.getBlue()));
         }
 
-        // use layout
-        log.info("Run layout algorithm");
-        ForceAtlasLayout layout = new ForceAtlasLayout(null);
-        layout.setGraphModel(graphModel);
-        layout.resetPropertiesValues();
-        layout.initAlgo();
-
-        for (int i = 0; i <= 1000 && layout.canAlgo(); i++) {
-            layout.goAlgo();
-        }
-        layout.endAlgo();
+        // 根据策略执行布局算法
+        log.info("Running layout algorithm...");
+        LayOutStrategyFactory.runLayoutAlgorithm(AppConfig.LAYOUT_ALOG_ENUM, graphModel);
         log.info("Layout end");
 
         // Preview
-        model.getProperties().putValue(PreviewProperty.SHOW_NODE_LABELS, true);
+        model.getProperties().putValue(PreviewProperty.SHOW_NODE_LABELS, AppConfig.SHOW_NODE_LABELS);
+        model.getProperties().putValue(PreviewProperty.EDGE_COLOR, new EdgeColor(Color.GRAY));
         model.getProperties().putValue(PreviewProperty.NODE_LABEL_FONT, new Font("宋体", Font.PLAIN, 10));
         model.getProperties().putValue(PreviewProperty.EDGE_CURVED, false);
         previewController.refreshPreview();

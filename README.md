@@ -31,7 +31,7 @@ In order to run this project you will need to have installed:
 
 ### 好友学校统计
 
-暂时未实现
+在`school_out.txt`中，按学校名的统计总数降序排列
 
 ### 好友关系图
 
