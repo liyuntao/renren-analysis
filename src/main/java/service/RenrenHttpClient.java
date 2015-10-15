@@ -133,14 +133,20 @@ public class RenrenHttpClient extends BaseHttpClient {
         DataFileHandler.dumpSchoolRank(result, AppConfig.SchoolRank_OUT_PATH);
     }
 
+
     public void runFriendNetwork() throws Exception {
-        String myUid = getMyUid();
-        log.info("正在获取账号的所有好友...");
-        List<FriendInfo> friends = getFriendList(myUid, "me");
-
-        getSchoolRank(friends);
-
+        //校验未完成任务
+        List<FriendInfo> friends = DataFileHandler.recoverUnDoTask();
+        if(friends.isEmpty()) {
+            String myUid = getMyUid();
+            log.info("正在获取账号的所有好友...");
+            friends = getFriendList(myUid, "me");
+        }else {
+            log.info("正在恢复上次未完成任务...");
+        }
         // 缓存为map
+        //持久化好友列表
+        DataFileHandler.writeFriendList(friends);
         cache = new HashSet<>(friends);
         crawlFriendsData(friends);
     }

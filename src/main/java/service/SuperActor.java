@@ -13,7 +13,10 @@ import model.FriendInfo;
 import scala.concurrent.Future;
 import utils.Pair;
 
+import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static akka.dispatch.Futures.future;
 
@@ -33,6 +36,8 @@ public class SuperActor extends UntypedActor {
     private Iterator<FriendInfo> iterator;
 
     private Map<FriendInfo, List<FriendInfo>> dataMap = new HashMap<>();
+
+    private ExecutorService es = Executors.newCachedThreadPool();
 
     private SuperActor(List<FriendInfo> friendList) {
         this.friends = friendList;
@@ -105,7 +110,7 @@ public class SuperActor extends UntypedActor {
                         // 任务结束，unwatch并stop所有child actors
                         stopAll();
                         // 将结果dump至文件
-                        DataFileHandler.dumpDataFile(dataMap);
+//                        DataFileHandler.dumpDataFile(dataMap);
                         log.info("抓取任务结束!! 共抓取{}个好友，出现{}个错误", friends.size(), errorCount);
                         context().system().shutdown();
                     }
@@ -117,11 +122,15 @@ public class SuperActor extends UntypedActor {
         } else if (message instanceof Pair) {
             // child actor返回它所负责查询的Friend的所有共同好友 List<FriendInfo>
             // 由super actor汇总（reduce）
-            @SuppressWarnings("unchecked")
             Pair<FriendInfo, List<FriendInfo>> p = (Pair<FriendInfo, List<FriendInfo>>) message;
-            dataMap.put(p.getObject1(), p.getObject2());
             log.info("SuperActor已收到并汇总[{}]的好友数据，任务进度:{}/{}", p.getObject1().getName(), dataMap.size(), friends.size());
-
+            es.submit(new Thread(() -> {//将从子actor获取的好友信息持久化
+                try {
+                    DataFileHandler.writeFriendInfo(p);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }));
             self().tell("SubTaskFinish", ActorRef.noSender());
         } else {
             log.warning("superActor未处理的消息");

@@ -14,6 +14,9 @@ public class AppConfig {
     // 好友关系数据的结果文件名
     public static final String FriendRelationship_OUT_PATH = "network.txt";
 
+    // 好友关系数据的结果文件名
+    public static String FriendList_OUT_PATH = "FList.txt";
+
     // 并发子任务执行数，建议根据网络状况调整
     public static final int MAX_CONCURRENT_TASK_RUNNING = 4;
 

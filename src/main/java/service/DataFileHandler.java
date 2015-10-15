@@ -19,6 +19,10 @@ public class DataFileHandler {
 
     private static final Logger log = LoggerFactory.getLogger(DataFileHandler.class);
 
+    private static FileWriter infoFile;
+
+    private static FileWriter listFile;
+
     /**
      * 根据指定的datafile构建数据结构（用于绘图分析的map)
      *
@@ -37,11 +41,11 @@ public class DataFileHandler {
             for (String line; (line = br.readLine()) != null; ) {
                 if (isParentLine(line)) {
                     parent = ModelFactory.parseFriendFromStr(line);
-                    if(parent == null) continue;
+                    if (parent == null) continue;
                     map.put(parent, new ArrayList<>());
                 } else {
                     FriendInfo child = ModelFactory.parseFriendFromStr(line);
-                    if(parent == null) continue;
+                    if (parent == null) continue;
                     map.get(parent).add(child);
                 }
             }
@@ -59,6 +63,71 @@ public class DataFileHandler {
      */
     private static boolean isParentLine(String content) {
         return !content.startsWith("--");
+    }
+
+    /**
+     * 将一个好友的信息以及其好友列表持久化
+     *
+     * @param pair
+     */
+    public static void writeFriendInfo(Pair<FriendInfo, List<FriendInfo>> pair) throws IOException {
+        FriendInfo friendInfo = pair.getObject1();
+        List<FriendInfo> friendInfoList = pair.getObject2();
+        infoFile.write("-");
+        infoFile.write(friendInfo.toString());
+        for (FriendInfo ele : friendInfoList) {
+            infoFile.write("--");
+            infoFile.write(ele.toString());
+            infoFile.write("\r\n");
+        }
+        infoFile.flush();
+    }
+
+    public static void writeFriendList(List<FriendInfo> friendInfoList) throws IOException {
+        for (FriendInfo friendInfo : friendInfoList) {
+            listFile.write("-");
+            listFile.write(friendInfo.toString());
+            listFile.write("\r\n");
+            listFile.flush();
+        }
+    }
+
+    public static List<FriendInfo> recoverUnDoTask() throws IOException {
+        List<FriendInfo> list = new ArrayList<>();
+        File checkListFile = new File(AppConfig.FriendList_OUT_PATH);
+        if (checkListFile.exists()) {
+            try (BufferedReader br = new BufferedReader(new FileReader(checkListFile))) {
+                FriendInfo friendInfo;
+                for (String line; (line = br.readLine()) != null; ) {
+                    if (isParentLine(line)) {
+                        friendInfo = ModelFactory.parseFriendFromStr(line);
+                        list.add(friendInfo);
+                    }
+                }
+            }
+
+            try (BufferedReader br = new BufferedReader(new FileReader(new File(AppConfig.FriendRelationship_OUT_PATH)))) {
+                FriendInfo parent;
+                for (String line; (line = br.readLine()) != null; ) {
+                    if (isParentLine(line)) {
+                        parent = ModelFactory.parseFriendFromStr(line);
+                        if (list.contains(parent)) {
+                            list.remove(parent);
+                        }
+                    }
+                }
+            }
+
+            infoFile = new FileWriter(AppConfig.FriendRelationship_OUT_PATH, true);
+        }else {
+            infoFile = new FileWriter(AppConfig.FriendRelationship_OUT_PATH);
+        }
+        listFile = new FileWriter(AppConfig.FriendList_OUT_PATH);
+        return list;
+    }
+
+    public static void finishFile() {
+        new File(AppConfig.FriendList_OUT_PATH).delete();
     }
 
     /**
