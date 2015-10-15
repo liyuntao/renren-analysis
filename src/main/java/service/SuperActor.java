@@ -35,20 +35,12 @@ public class SuperActor extends UntypedActor {
     private int current_running_task = 0;
     private Iterator<FriendInfo> iterator;
 
-    private Map<FriendInfo, List<FriendInfo>> dataMap = new HashMap<>();
+    private int currentFinishedSubTaskCount = 0;
 
     private ExecutorService es = Executors.newCachedThreadPool();
 
     private SuperActor(List<FriendInfo> friendList) {
         this.friends = friendList;
-
-        // FIXME 测试使用，减小数据量
-//        List<FriendInfo> fake = new ArrayList<>();
-//        for(int i = 0; i < 5; i++) {
-//            fake.add(friends.get(i));
-//        }
-//        friends = fake;
-
         this.subTaskLeft = friends.size();
         this.iterator = friends.iterator(); // 用于简化任务分配的逻辑
     }
@@ -123,7 +115,7 @@ public class SuperActor extends UntypedActor {
             // child actor返回它所负责查询的Friend的所有共同好友 List<FriendInfo>
             // 由super actor汇总（reduce）
             Pair<FriendInfo, List<FriendInfo>> p = (Pair<FriendInfo, List<FriendInfo>>) message;
-            log.info("SuperActor已收到并汇总[{}]的好友数据，任务进度:{}/{}", p.getObject1().getName(), dataMap.size(), friends.size());
+            log.info("SuperActor已收到并汇总[{}]的好友数据，任务进度:{}/{}", p.getObject1().getName(), ++currentFinishedSubTaskCount, friends.size());
             es.submit(new Thread(() -> {//将从子actor获取的好友信息持久化
                 try {
                     DataFileHandler.writeFriendInfo(p);
