@@ -36,7 +36,8 @@ public class DataFileHandler {
         }
 
         Map<FriendInfo, List<FriendInfo>> map = new HashMap<>();
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(new File(friendDataFilePath)), StandardCharsets.UTF_8))) {
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(
+                new FileInputStream(new File(friendDataFilePath)), StandardCharsets.UTF_8))) {
             FriendInfo parent = null;
             for (String line; (line = br.readLine()) != null; ) {
                 if (isParentLine(line)) {
@@ -96,7 +97,8 @@ public class DataFileHandler {
         List<FriendInfo> list = new ArrayList<>();
         File checkListFile = new File(AppConfig.FriendList_OUT_PATH);
         if (checkListFile.exists()) {
-            try (BufferedReader br = new BufferedReader(new FileReader(checkListFile))) {
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(
+                    new FileInputStream(checkListFile), StandardCharsets.UTF_8))) {
                 FriendInfo friendInfo;
                 for (String line; (line = br.readLine()) != null; ) {
                     if (isParentLine(line)) {
@@ -106,7 +108,8 @@ public class DataFileHandler {
                 }
             }
 
-            try (BufferedReader br = new BufferedReader(new FileReader(new File(AppConfig.FriendRelationship_OUT_PATH)))) {
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(
+                    new FileInputStream(new File(AppConfig.FriendRelationship_OUT_PATH)), StandardCharsets.UTF_8))) {
                 FriendInfo parent;
                 for (String line; (line = br.readLine()) != null; ) {
                     if (isParentLine(line)) {
@@ -119,7 +122,7 @@ public class DataFileHandler {
             }
 
             infoFile = new FileWriter(AppConfig.FriendRelationship_OUT_PATH, true);
-        }else {
+        } else {
             infoFile = new FileWriter(AppConfig.FriendRelationship_OUT_PATH);
         }
         listFile = new FileWriter(AppConfig.FriendList_OUT_PATH);
