@@ -2,7 +2,9 @@ package config;
 
 import service.graph.LayoutAlogEnum;
 
-public class AppConfig {
+public final class AppConfig {
+
+    private AppConfig() {}
 
     /** 爬虫相关 */
     // 配置文件：人人账户密码
