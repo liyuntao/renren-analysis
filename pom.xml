@@ -82,7 +82,7 @@
                         </goals>
                         <configuration>
                             <outputFile>target/${project.artifactId}-${project.version}-with-dependencies.jar</outputFile>
-                            <minimizeJar>true</minimizeJar>
+                            <minimizeJar>false</minimizeJar>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                         </configuration>
                     </execution>

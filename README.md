@@ -24,9 +24,9 @@ In order to run this project you will need to have installed:
     # 2. configuring the renren.com username and password in userinfo.properties
     # 3. run the crawler
     cd renren-analysis/target
-    java -jar renren-analysis-1.0-SNAPSHOT-with-dependencies -c
+    java -jar renren-analysis-1.0-SNAPSHOT-with-dependencies -c="./userinfo.properties"
     # or draw a pic by the output of crawler
-    java -jar renren-analysis-1.0-SNAPSHOT-with-dependencies -d="network.txt"
+    java -jar renren-analysis-1.0-SNAPSHOT-with-dependencies -d="./network.txt"
 
 ## Run source code
 

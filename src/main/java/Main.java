@@ -19,7 +19,7 @@ public class Main {
         // create the Options
         options = new Options();
         options.addOption("h", "help", false, "show help.");
-        options.addOption("c", "crawl", false, "crawl data from renren");
+        options.addOption("c", "crawl", true, "crawl data from renren");
         options.addOption("d", "draw", true, "draw pic");
     }
 
@@ -27,10 +27,13 @@ public class Main {
         CommandLineParser parser = new DefaultParser();
         try {
             CommandLine cmd = parser.parse(options, args);
-            // validate that block-size has been set
             if (cmd.hasOption("h")) {
                 help();
             } else if (cmd.hasOption("c")) {
+                if(cmd.getOptionValue("c") != null) {
+                    String configFilePath = cmd.getOptionValue("c");
+                    AppConfig.ACCOUNT_CONFIG_FILEPATH = configFilePath;
+                }
                 // 爬取好友数据，会自动生成至文件
                 RenrenHttpClient controller = RenrenHttpClient.create();
                 controller.runFriendNetwork();
@@ -38,7 +41,6 @@ public class Main {
                 String dataFilePath = cmd.getOptionValue("d");
                 AppConfig.FriendRelationship_OUT_PATH = dataFilePath;
                 log.info("Using cli argument -d=" + dataFilePath);
-
                 // 读取文件至内存并进行可视化展示
                 Map<FriendInfo, List<FriendInfo>> dataMap = DataFileHandler.parseDataFile(AppConfig.FriendRelationship_OUT_PATH);
                 GraphHandler grapher = new GraphHandler(dataMap);
