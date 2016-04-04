@@ -14,7 +14,7 @@ public final class AppConfig {
     public static final String SchoolRank_OUT_PATH = "school_out.txt";
 
     // 好友关系数据的结果文件名
-    public static final String FriendRelationship_OUT_PATH = "network.txt";
+    public static String FriendRelationship_OUT_PATH = "network.txt";
 
     // 好友关系数据的结果文件名
     public static String FriendList_OUT_PATH = "FList.txt";

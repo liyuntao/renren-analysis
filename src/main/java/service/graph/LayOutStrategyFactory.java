@@ -23,11 +23,11 @@ public class LayOutStrategyFactory {
         switch (algoEnum) {
             case ForceAtlas:
                 layout = new ForceAtlasLayout(null);
-                maxAlgoRunTimes = 2500;
+                maxAlgoRunTimes = 1500;
                 break;
             case FruchtermanReingold:
                 layout = new FruchtermanReingold(null);
-                maxAlgoRunTimes = 1200;
+                maxAlgoRunTimes = 3500;
                 break;
             case LabelAdjust:
                 layout = new LabelAdjust(null);
@@ -35,7 +35,7 @@ public class LayOutStrategyFactory {
                 break;
             case MultiLevel:
                 layout = new MultiLevelLayout(null, new MaximalMatchingCoarsening());
-                maxAlgoRunTimes = 1000;
+                maxAlgoRunTimes = 10000;
                 break;
             case Rotate:
                 layout = new RotateLayout(null, 25.0); // not good

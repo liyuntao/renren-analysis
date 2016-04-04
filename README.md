@@ -12,13 +12,28 @@ In order to run this project you will need to have installed:
 * JDK 1.8 or later
 * Maven (3.0+ recommended)
 
-## How to start
+## Build
+
+    git clone https://github.com/liyuntao/renren-analysis
+    cd renren-analysis
+    mvn clean package
+
+## Run jar file
+
+    # 1. build the project first
+    # 2. configuring the renren.com username and password in userinfo.properties
+    # 3. run the crawler
+    cd renren-analysis/target
+    java -jar renren-analysis-1.0-SNAPSHOT-with-dependencies -c
+    # or draw a pic by the output of crawler
+    java -jar renren-analysis-1.0-SNAPSHOT-with-dependencies -d="network.txt"
+
+## Run source code
 
 1. 将工程导入 IDE
-2. 添加工程根目录下的 lib/gephi-toolkit.jar 至 dependencies
-3. 首次使用需填写账号信息至配置文件， 位于 resources/userinfo.properties
-4. 执行 Main.java 即可
-5. 更多个性化调节可以修改AppConfig.java
+2. 首次使用需填写账号信息至配置文件， 位于 resources/userinfo.properties
+3. 执行 Main.java 即可
+4. 更多个性化调节可以修改AppConfig.java
 
 ## Structure and Usage tips
 

@@ -1,9 +1,8 @@
 import config.AppConfig;
 import model.FriendInfo;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.Options;
+import org.apache.commons.cli.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import service.DataFileHandler;
 import service.RenrenHttpClient;
 import service.graph.GraphHandler;
@@ -13,28 +12,48 @@ import java.util.List;
 import java.util.Map;
 
 public class Main {
-    public static void main(String[] args) throws Exception {
+    private static final Logger log = LoggerFactory.getLogger(Main.class);
+    private static Options options;
 
-        CommandLineParser parser = new DefaultParser();
+    static {
         // create the Options
-        Options options = new Options();
-        options.addOption("h", "help", false, "help help help");
+        options = new Options();
+        options.addOption("h", "help", false, "show help.");
         options.addOption("c", "crawl", false, "crawl data from renren");
+        options.addOption("d", "draw", true, "draw pic");
+    }
+
+    public static void main(String[] args) throws Exception {
+        CommandLineParser parser = new DefaultParser();
         try {
-            CommandLine line = parser.parse(options, args);
+            CommandLine cmd = parser.parse(options, args);
             // validate that block-size has been set
-            if (line.hasOption("c")) {
+            if (cmd.hasOption("h")) {
+                help();
+            } else if (cmd.hasOption("c")) {
                 // 爬取好友数据，会自动生成至文件
                 RenrenHttpClient controller = RenrenHttpClient.create();
                 controller.runFriendNetwork();
-            } else {
+            } else if (cmd.hasOption("d")) {
+                String dataFilePath = cmd.getOptionValue("d");
+                AppConfig.FriendRelationship_OUT_PATH = dataFilePath;
+                log.info("Using cli argument -d=" + dataFilePath);
+
                 // 读取文件至内存并进行可视化展示
                 Map<FriendInfo, List<FriendInfo>> dataMap = DataFileHandler.parseDataFile(AppConfig.FriendRelationship_OUT_PATH);
                 GraphHandler grapher = new GraphHandler(dataMap);
                 grapher.script();
+            } else {
+                help();
             }
         } catch (ParseException exp) {
             System.err.println("Parsing failed.  Reason: " + exp.getMessage());
         }
+    }
+
+    private static void help() {
+        HelpFormatter formater = new HelpFormatter();
+        formater.printHelp("Main", options);
+        System.exit(0);
     }
 }
