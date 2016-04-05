@@ -30,8 +30,8 @@ public class Main {
             if (cmd.hasOption("h")) {
                 help();
             } else if (cmd.hasOption("c")) {
-                if(cmd.getOptionValue("c") != null) {
-                    String configFilePath = cmd.getOptionValue("c");
+                String configFilePath = cmd.getOptionValue("c");
+                if(configFilePath != null) {
                     AppConfig.ACCOUNT_CONFIG_FILEPATH = configFilePath;
                 }
                 // 爬取好友数据，会自动生成至文件

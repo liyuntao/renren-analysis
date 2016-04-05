@@ -30,7 +30,7 @@ In order to run this project you will need to have installed:
 
 ## Run source code
 
-1. 将工程导入 IDE
+1. 将 Maven 工程导入 IDE
 2. 首次使用需填写账号信息至配置文件， 位于 resources/userinfo.properties
 3. 执行 Main.java 即可
 4. 更多个性化调节可以修改AppConfig.java
