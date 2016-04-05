@@ -1,4 +1,4 @@
-# renren-analysis
+# renren-analysis    [![Build Status](https://travis-ci.org/liyuntao/renren-analysis.svg?branch=master)](https://travis-ci.org/liyuntao/renren-analysis)
 **a project which is used for crawler and data visualization on [renren.com](http://www.renren.com)**
 
 <figure>
